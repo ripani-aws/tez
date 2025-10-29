@@ -37,6 +37,18 @@ export default SingleAmPollsterRoute.extend({
   },
 
   load: function (value, query, options) {
-    return this.get("loader").queryRecord('vertex', this.modelFor("vertex").get("id"), options);
+    // Load the vertex first
+    return this.get("loader").queryRecord('vertex', this.modelFor("vertex").get("id"), options)
+      .then((vertex) => {
+        // Then load the DAG with its info relationship using the vertex's dagID
+        const dagID = vertex.get('dagID');
+        if (dagID) {
+          // Force reload to bypass cache and explicitly load the 'info' need
+          return this.get("loader").queryRecord('dag', dagID, { reload: true })
+            .then((dag) => this.get("loader").loadNeed(dag, "info", { reload: true }))
+            .then(() => vertex);
+        }
+        return vertex;
+      });
   },
 });
